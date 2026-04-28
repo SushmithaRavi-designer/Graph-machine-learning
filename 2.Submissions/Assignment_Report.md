@@ -1,180 +1,223 @@
 # SPATIAL INTELLIGENCE - APARTMENT COMPLEX ASSIGNMENT REPORT
 
 
-###  Data Processing Steps
+## Data Processing Steps
 
-#### Step 1: Loading Geometry
-```
-- Load OBJ files using Topology.ByOBJPath()
-- Convert to CellComplex structure for topological analysis
-```
+#### Step 1: Import Required Libraries
+- Import TopologicPy modules:
+  - **Geometry**: Vertex, Edge, Wire, Face, Shell, Cell, CellComplex, Cluster, Topology
+  - **Analysis**: Dictionary, Helper, Grid, Graph
+  - **Visualization**: Color
 
-#### Step 2: Room Extraction and Tagging
-- Extract individual rooms from the building geometry
-- Assign semantic information via dictionaries:
-  - **Room Names**: Living Room, Bedroom, Kitchen, Bathroom, etc.
-  - **Color Coding**: Visual distinction for each room type
+#### Step 2: Check TopologicPy Version
+- Verify installed version is 0.9.18 or newer
+- Display current version using `Helper.Version()`
 
-#### Step 3: Aperture Processing
-- Extract door and window faces
-- Tag with aperture type and color properties
-- Calculate centroid positions for each aperture
+#### Step 3: Set Renderer Configuration
+- Configure visualization backend:
+  - **VSCode**: For VS Code integrated viewer
+  - **Colab**: For Google Colab environments
+  - **Browser**: For web-based visualization
 
-#### Step 4: Spatial Relationship Analysis
-- Create a graph representing spatial connectivity
-- Use `Graph.ByTopology()` with parameters:
-  - `viaSharedApertures=True`: Rooms connected through doors/windows
-  - `toExteriorApertures=True`: Include connections to exterior
+#### Step 4: Import Main House OBJ File
+- Load main building geometry using `Topology.ByOBJPath()`
+- Input: complex house.obj file
+- Output: List of topological objects representing the building structure
 
-#### Step 5: Vertex and Edge Visualization
-- Assign node sizes based on room surface area:
-  - Larger nodes = Larger rooms
-  - Smaller nodes = Smaller apertures
-- Color code vertices by room/aperture type
-- Encode edge properties (width and color)
+#### Step 5: Convert List to Cluster
+- Convert OBJ list to `Cluster` using `Cluster.ByTopologies()`
+- Create `CellComplex` from cluster using `CellComplex.ByFacesCluster()`
+- Result: Unified topological structure for further analysis
+
+#### Step 6: Import Doors and Windows OBJ Files
+- Load aperture geometries:
+  - **Doors**: complex_door.obj
+  - **Windows**: complex_window.obj
+- Extract faces using `Topology.Faces()` on converted clusters
+- Count and catalog all apertures in the structure
+
+#### Step 7: Cell Extraction and Color Tagging
+- Extract individual cells/rooms from house geometry
+- Define color map for semantic categorization:
+  - **Living Room**: Red
+  - **Kitchen**: Yellow
+  - **Dining Room**: Pink
+  - **Bedroom**: Blue
+  - **Bathroom**: Purple
+  - **Corridors**: Cyan (interior), Grey (exterior)
+  - **Doors**: Brown
+  - **Windows**: Light Cyan
+- Tag each cell with name and color using `Dictionary`
+- Create selector vertices for each room (internal vertices)
+
+#### Step 8: Creating CellComplex with Apertures
+- Add doors to cell complex using `Topology.AddApertures()` with `subTopologyType="face"`
+- Add windows to cell complex using `Topology.AddApertures()` with `subTopologyType="face"`
+- Create updated CellComplex with aperture relationships
+
+#### Step 9: Aperture Data Extraction & Connectivity Graph Creation
+- Create spatial graph using `Graph.ByTopology()` with parameters:
+  - `direct=False`: Allow indirect connections
+  - `viaSharedApertures=True`: Connect rooms sharing doors/windows
+  - `toExteriorApertures=True`: Include exterior connections
+- Assign vertex properties:
+  - **Size**: Normalized based on room surface area (8-28 units)
+  - **Color**: Derived from cell color dictionary
+- Assign edge properties:
+  - **Width**: Set to 10 units
+  - **Color**: Set to black for visual distinction
+- Create aperture vertices for doors and windows at their centroids
+
+#### Step 10: Visualization
+- Display final graph with room cells and apertures
+- Use `Topology.Show()` with:
+  - `vertexSizeKey="size"`: Vertex size proportional to room area
+  - `vertexColorKey="color"`: Color-coded by room/aperture type
+  - `backgroundColor="white"`: White background for clarity
+  - Specified renderer configuration
 
 ---
 
-## 4. COLOR MAPPING SCHEME
+## 2. COLOR MAPPING SCHEME
 
-| Space Type | Color | Purpose |
-|-----------|-------|---------|
-| Living Room | Red | Main living area |
-| Kitchen | Yellow | Food preparation |
-| Dining Room | Pink | Dining area |
-| Bedroom | Blue | Private sleeping areas |
-| Bathroom | Purple | Sanitation facilities |
-| Exterior Corridor | Grey | Outdoor circulation |
-| Interior Corridor | Cyan | Indoor circulation |
-| Door | Brown | Room connections |
-| Window | Light Cyan | External connections |
+| Space Type | Hex Color | Purpose |
+|-----------|-----------|---------|
+| Living Room | #FF0000 (Red) | Main living area |
+| Kitchen | #FFFF00 (Yellow) | Food preparation |
+| Dining Room | #FF1493 (Pink) | Dining area |
+| Bedroom | #0000FF (Blue) | Private sleeping areas |
+| Bathroom | #800080 (Purple) | Sanitation facilities |
+| Exterior Corridor | #808080 (Grey) | Outdoor circulation |
+| Interior Corridor | #00FFFF (Cyan) | Indoor circulation |
+| Door | #8B4513 (Brown) | Room connections |
+| Window | #E0FFFF (Light Cyan) | External connections |
 
 ---
 
-## 5. GRAPH STRUCTURE ANALYSIS
+## 3. GRAPH STRUCTURE ANALYSIS
 
-### 5.1 Graph Vertices
-- **Room Vertices**: Represent individual rooms, sized by surface area
+### 3.1 Graph Vertices
+- **Room Vertices**: Represent individual rooms/cells extracted from CellComplex
+  - Sized proportionally to their surface area
+  - Normalized size range: 8-28 units for visual distinction
 - **Aperture Vertices**: Represent doors and windows
-- **Total Vertices**: Comprises all rooms + doors + windows
+  - Doors: Size 5, Brown color
+  - Windows: Size 4, Light Cyan color
+  - Positioned at face centroids
+- **Total Vertices**: Comprises all extracted cells (rooms) plus aperture vertices
 
-### 5.2 Graph Edges
-- Represent spatial adjacency relationships
-- Connect rooms that share apertures (doors/windows)
-- Enable pathfinding and spatial connectivity analysis
+### 3.2 Graph Edges
+- Represent spatial adjacency relationships created by `Graph.ByTopology()`
+- Edge properties:
+  - **Width**: 10 units for visibility
+  - **Color**: Black for standard contrast
+- Connection logic:
+  - Rooms connected via shared doors/windows (`viaSharedApertures=True`)
+  - Exterior connections included (`toExteriorApertures=True`)
+  - Indirect connections allowed (`direct=False`)
 
-### 5.3 Connectivity Properties
-- **Direct Connections**: Room-to-room via shared doors
-- **Shared Apertures**: Multiple rooms connected through single aperture
-- **Exterior Access**: Direct connections to exterior through windows/doors
+### 3.3 Connectivity Properties
+- **Via Shared Apertures**: Rooms are connected when they share door/window faces
+- **Exterior Access**: Direct connections to outside environment through external apertures
+- **Network Topology**: Creates a spatial graph enabling pathfinding and analysis
 
 ---
 
-## 6. VISUALIZATION OUTPUT
+## 4. VISUALIZATION OUTPUT
 
-### 6.1 Spatial Representation Visualization
+### 4.1 3D Spatial Representation
 The generated visualization displays:
-1. **Cell/Face Rendering**: 3D geometry of the apartment complex
-   - Color-coded by room type
-   - Proper face ordering and lighting
+1. **Building Geometry**: 3D model of the apartment complex
+   - Color-coded cells representing different room types
+   - Door and window faces included for aperture visualization
+   - White background for clarity
 
 2. **Graph Overlay**: Network representation of spatial relationships
-   - Node positions: Centroids of rooms/apertures
-   - Node sizes: Proportional to surface area
-   - Edge connections: Spatial adjacency relationships
-
-
+   - Node positions: Centroids of rooms and apertures
+   - Node sizes: Proportional to room surface area (rooms larger than apertures)
+   - Edge connections: Black lines showing spatial adjacency
+   - Color coding: Semantic differentiation by room/aperture type
 
 ---
 
-## 7. KEY FINDINGS
+## 5. KEY FINDINGS & METRICS
 
-### 7.1 Spatial Organization
-- The building features a [number of rooms] room layout
+### 5.1 Spatial Organization
+- Building comprises multiple room types organized by function
 - Clear separation of functional zones (bedrooms, common areas, service areas)
-- Multiple circulation paths through corridors
+- Multiple circulation paths through interior and exterior corridors
+- Color-coded organization enables intuitive spatial understanding
 
-### 7.2 Connectivity Insights
-- Rooms are interconnected through [number] doors
-- Windows provide [number] exterior connections
-- Core circulation areas (corridors) act as distribution hubs
+### 5.2 Graph Metrics
+Derived from `Graph.ByTopology()` analysis:
+- **Vertex Count**: Number of rooms + apertures in the network
+- **Edge Count**: Number of spatial adjacency relationships
+- **Graph Connectivity**: Indicates how well-connected the building spaces are
+- **Centrality**: Identifies key hub rooms with highest connectivity degree
 
-### 7.3 Graph Properties
-- **Vertex Count**: [Total number of vertices]
-- **Edge Count**: [Total number of edges]
-- **Graph Density**: Indicates level of interconnectivity
-- **Centrality**: Identifies key hub rooms (highest degree)
+### 5.3 Aperture Analysis
+- **Door Count**: Number of room-to-room connections
+- **Window Count**: Number of exterior connections
+- **Connection Patterns**: Reveals primary circulation routes and dead-end spaces
 
 ---
 
-## 8. TOPOLOGICPY IMPLEMENTATION
+## 6. TECHNICAL IMPLEMENTATION
 
-### 8.1 Key Libraries Used
-```python
-from topologicpy.Topology import Topology
-from topologicpy.Graph import Graph
-from topologicpy.Cell import Cell
-from topologicpy.Cluster import Cluster
-from topologicpy.Dictionary import Dictionary
-import math
+### 6.1 TopologicPy Workflow
+```
+OBJ Files → Load → Cluster → CellComplex → Aperture Processing → 
+Graph Creation → Vertex/Edge Properties → Visualization
 ```
 
-### 8.2 Core Functions Applied
+### 6.2 Key Functions Applied
 - `Topology.ByOBJPath()`: Import 3D geometry from OBJ files
-- `Topology.SelfMerge()`: Merge connected geometric elements
-- `Topology.Cells()`: Extract individual cells/rooms
-- `Graph.ByTopology()`: Generate spatial relationship graph
-- `Topology.Show()`: Visualize geometry and graph
-- `Dictionary` operations: Attach semantic information to topologies
+- `Cluster.ByTopologies()`: Aggregate topologies into unified cluster
+- `CellComplex.ByFacesCluster()`: Create structured cell complex
+- `Topology.AddApertures()`: Integrate doors/windows into cell complex
+- `Graph.ByTopology()`: Generate connectivity graph with adjacency relationships
+- `Dictionary` operations: Attach semantic properties (name, color, size)
+- `Topology.Show()`: Render 3D visualization with graph overlay
+
+### 6.3 Color Normalization
+- Surface area extracted using `Cell.SurfaceArea()`
+- Normalized range: 0 to 1 based on min/max areas
+- Applied to vertex sizing with formula: `size = 8 + 20 * (norm^0.5)`
+- Result: Visual distinction between large rooms and small apertures
 
 ---
 
-## 9. TECHNICAL CHALLENGES & SOLUTIONS
+## 7. TECHNICAL CHALLENGES & SOLUTIONS
 
 ### Challenge 1: Room Identification
 **Issue**: Extracting individual rooms from imported geometry
-**Solution**: Use CellComplex structure with proper topology merging
+**Solution**: Use CellComplex structure with proper topology merging and `Topology.SelfMerge()` to create unified cell representation from imported OBJ faces
 
 ### Challenge 2: Aperture Association
-**Issue**: Linking doors/windows to their parent rooms
-**Solution**: Process apertures separately and use centroid-based proximity matching
+**Issue**: Linking doors/windows to their parent rooms for connectivity analysis
+**Solution**: Process apertures separately using dedicated OBJ files, then integrate via `Topology.AddApertures()` to establish spatial relationships
 
-### Challenge 3: Visualization Clarity
-**Issue**: Overlapping geometry in complex building
-**Solution**: Use color coding, vertex sizing, and selective transparency
+### Challenge 3: Vertex Sizing and Normalization
+**Issue**: Creating meaningful visual distinction between rooms and apertures
+**Solution**: Extract surface area using `Cell.SurfaceArea()`, normalize to 0-1 range, and apply square root scaling with formula: `size = 8 + 20 * (norm^0.5)` for improved visual spread
 
-### Challenge 4: Graph Construction
-**Issue**: Creating meaningful connectivity graph from 3D geometry
-**Solution**: Leverage TopologicPy's built-in aperture-based connectivity analysis
+### Challenge 4: Color Consistency and Mapping
+**Issue**: Ensuring consistent color representation across geometry and graph visualization
+**Solution**: Use hex color values in Dictionary format (e.g., "#FF0000" for red) and map room names to colors during extraction phase
 
----
+### Challenge 5: Graph Construction from Complex Geometry
+**Issue**: Creating meaningful connectivity graph from 3D spatial data
+**Solution**: Leverage TopologicPy's `Graph.ByTopology()` with strategic parameters:
+  - `viaSharedApertures=True`: Connect only rooms that share aperture faces
+  - `toExteriorApertures=True`: Include exterior environment connections
+  - `direct=False`: Allow indirect adjacency relationships
 
-## 10. LEARNING OUTCOMES
-
-This assignment demonstrates understanding of:
-
-1. **3D Geometric Modeling**: Working with complex 3D structures and topology
-2. **Graph Theory Application**: Converting spatial geometry to graph networks
-3. **Semantic Annotation**: Attaching meaning to geometric entities
-4. **Data Visualization**: Multi-dimensional data representation
-5. **TopologicPy Framework**: Advanced geometric computing capabilities
-
----
-
-## 11. CONCLUSION
-
-The spatial representation of the apartment complex successfully demonstrates the integration of geometric and topological analysis in Graph Machine Learning. The color-coded visualization with graph overlay provides intuitive understanding of:
-- Spatial organization of the building
-- Room connectivity and adjacency relationships
-- Circulation patterns and accessibility
-- Semantic differentiation of space types
-
-This approach can be extended to:
-- Navigation and pathfinding algorithms
-- Space allocation and planning
-- Energy efficiency analysis
-- Emergency evacuation route planning
-- Architectural design optimization
+### Challenge 6: Visualization Clarity in Complex Space
+**Issue**: Overlapping geometry and visual clutter in 3D building visualization
+**Solution**: 
+  - Use white background for contrast
+  - Color-code vertices by room/aperture type
+  - Scale vertex sizes proportionally for visual hierarchy
+  - Apply black edges with controlled width for clear connectivity representation
 
 ---
-
