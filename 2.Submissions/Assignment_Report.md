@@ -49,32 +49,66 @@
   - **Windows**: Light Cyan
 - Tag each cell with name and color using `Dictionary`
 - Create selector vertices for each room (internal vertices)
+- Visualize extracted cells with `Topology.Show()` using color keys
 
 #### Step 8: Creating CellComplex with Apertures
 - Add doors to cell complex using `Topology.AddApertures()` with `subTopologyType="face"`
 - Add windows to cell complex using `Topology.AddApertures()` with `subTopologyType="face"`
-- Create updated CellComplex with aperture relationships
+- Create updated CellComplex (`cc`) with aperture relationships
 
 #### Step 9: Aperture Data Extraction & Connectivity Graph Creation
-- Create spatial graph using `Graph.ByTopology()` with parameters:
+- **9.1 Combine aperture faces**: Aggregate door and window faces into single aperture collection
+  - Count and display aperture statistics (doors + windows)
+  - Create aperture_faces list for further processing
+  
+- **9.2 Extract aperture properties**: For each aperture face, extract:
+  - Centroid position
+  - Color and type information from Dictionary
+  - Store in aperture_data for vertex creation
+  
+- **9.3 Create spatial graph**: Use `Graph.ByTopology()` with parameters:
   - `direct=False`: Allow indirect connections
   - `viaSharedApertures=True`: Connect rooms sharing doors/windows
   - `toExteriorApertures=True`: Include exterior connections
-- Assign vertex properties:
-  - **Size**: Normalized based on room surface area (8-28 units)
-  - **Color**: Derived from cell color dictionary
-- Assign edge properties:
-  - **Width**: Set to 10 units
-  - **Color**: Set to black for visual distinction
-- Create aperture vertices for doors and windows at their centroids
+  - Display vertex and edge counts
 
-#### Step 10: Visualization
-- Display final graph with room cells and apertures
-- Use `Topology.Show()` with:
-  - `vertexSizeKey="size"`: Vertex size proportional to room area
-  - `vertexColorKey="color"`: Color-coded by room/aperture type
-  - `backgroundColor="white"`: White background for clarity
-  - Specified renderer configuration
+#### Step 10: Graph Vertex and Edge Processing
+- **10.1 Define color mapping**: Convert color names to hex values
+  - Red → #FF0000, Blue → #0000FF, Yellow → #FFFF00, etc.
+  - Ensures consistent rendering across geometry and graph
+
+- **10.2 Process cell data**: For each cell in the model:
+  - Extract centroid, surface area, and color
+  - Normalize surface areas (min/max range)
+  - Calculate vertex sizes: `size = 8 + 20 * (norm^0.5)`
+
+- **10.3 Update graph vertices**: For each graph vertex:
+  - Find closest cell by centroid distance
+  - Assign size and color properties
+  - Create updated vertex with Dictionary
+
+- **10.4 Create aperture vertices**: For doors and windows:
+  - Position at face centroids
+  - Doors: Size 5, Brown (#8B4513)
+  - Windows: Size 4, Light Cyan (#E0FFFF)
+  - Create vertices and add to graph
+
+- **10.5 Rebuild graph**: Merge all vertices (rooms + apertures) and reconstruct graph
+- **10.6 Style edges**: Assign edge properties:
+  - Width: 50 units for visibility
+  - Color: Black for contrast
+
+#### Step 11: Final Visualization
+- Display complete spatial graph with:
+  - Building geometry (`cc`)
+  - Door geometry
+  - Window geometry
+  - Graph overlay with vertex sizing and coloring
+  - Use `Topology.Show()` with:
+    - `vertexSizeKey="size"`: Vertex size proportional to room area
+    - `vertexColorKey="color"`: Color-coded by room/aperture type
+    - `backgroundColor="white"`: White background for clarity
+    - Specified renderer configuration
 
 ---
 
@@ -179,11 +213,12 @@ Graph Creation → Vertex/Edge Properties → Visualization
 - `Dictionary` operations: Attach semantic properties (name, color, size)
 - `Topology.Show()`: Render 3D visualization with graph overlay
 
-### 6.3 Color Normalization
+### 6.3 Color Normalization and Vertex Sizing
 - Surface area extracted using `Cell.SurfaceArea()`
 - Normalized range: 0 to 1 based on min/max areas
 - Applied to vertex sizing with formula: `size = 8 + 20 * (norm^0.5)`
-- Result: Visual distinction between large rooms and small apertures
+- Result: Visual distinction between large rooms (size 28) and small apertures (doors: 5, windows: 4)
+- Edge width set to 50 units with black color for clear connectivity visualization
 
 ---
 
